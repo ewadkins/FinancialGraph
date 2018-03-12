@@ -11,6 +11,26 @@ import math
 from display_utils import DynamicConsoleTable
 
 
+###########################################################
+#####                  Configuration                  #####
+###########################################################
+
+# NOTE: CSV files should include columns of the format:
+# date, transaction description, change in balance, balance
+#
+# The 1st and 4th columns, which are the date and balance
+#   after transaction, respecitively, are required.
+
+include_credit = True
+output_table_dividers = False
+
+checking_transactions_filepath = 'checking.csv'
+savings_transactions_filepath = 'savings.csv'
+credit_transactions_filepath = 'credit.csv'
+
+###########################################################
+
+
 ##### Helper functions
 
 def load_transactions(file_path):
@@ -50,24 +70,11 @@ def append_type(type):
     return lambda t: t + [type]
 
 
-###########################################################
-#####                  Configuration                  #####
-###########################################################
+##### Data loading
 
-# NOTE: CSV files should include columns of the format:
-# date, transaction description, change in balance, balance
-#
-# The 1st and 4th columns, which are the date and balance
-#   after transaction, respecitively, are required.
-
-include_credit = True
-output_table_dividers = False
-
-transactions_checking = load_transactions('checking.csv')
-transactions_savings = load_transactions('savings.csv')
-transactions_credit = load_transactions('credit.csv')
-
-###########################################################
+transactions_checking = load_transactions(checking_transactions_filepath)
+transactions_savings = load_transactions(savings_transactions_filepath)
+transactions_credit = load_transactions(credit_transactions_filepath)
 
 
 ##### Data processing
