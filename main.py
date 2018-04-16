@@ -108,7 +108,6 @@ last_date = None
 for i in range(len(transactions)):
     (date, desc, amount, balance, id) = transactions[i]
     type, account_index = id
-    print id
     if amount == 0:
         continue
     if last_date != date and last_date:
