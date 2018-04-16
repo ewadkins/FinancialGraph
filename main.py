@@ -19,14 +19,17 @@ from display_utils import DynamicConsoleTable
 # date, transaction description, change in balance, balance
 #
 # The 1st and 4th columns, which are the date and balance
-#   after transaction, respecitively, are required.
+# after the transaction, respecitively, are required.
 
 include_credit = True
 output_table_dividers = False
 
-checking_transactions_filepath = 'checking.csv'
-savings_transactions_filepath = 'savings.csv'
-credit_transactions_filepath = 'credit.csv'
+# Each file included below should contain all data for one account.
+# So, account transactions shouldn't be split between multiple files,
+# and transactions of multiple accounts shouldn't be in the same file.
+checking_transactions_filepaths = ['checking.csv']
+savings_transactions_filepaths = ['savings.csv']
+credit_transactions_filepaths = ['credit1234.csv', 'credit9876.csv']
 
 ###########################################################
 
@@ -72,19 +75,24 @@ def append_type(type):
 
 ##### Data loading
 
-transactions_checking = load_transactions(checking_transactions_filepath)
-transactions_savings = load_transactions(savings_transactions_filepath)
-transactions_credit = load_transactions(credit_transactions_filepath)
+checking_accounts = map(load_transactions, checking_transactions_filepaths)
+savings_accounts = map(load_transactions, savings_transactions_filepaths)
+credit_accounts = map(load_transactions, credit_transactions_filepaths)
 
 
 ##### Data processing
 
 if not include_credit:
-    transactions_credit = []
+    credit_accounts = []
+    
+checking_accounts = [map(append_type(('checking', i)), checking_accounts[i])
+                     for i in range(len(checking_accounts))]
+savings_accounts = [map(append_type(('savings', i)), savings_accounts[i])
+                    for i in range(len(savings_accounts))]
+credit_accounts = [map(append_type(('credit', i)), credit_accounts[i])
+                   for i in range(len(credit_accounts))]
 
-transactions = map(append_type('checking'), transactions_checking) + \
-                map(append_type('savings'), transactions_savings) + \
-                map(append_type('credit'), transactions_credit)
+transactions = reduce(lambda a, b: a + b, checking_accounts + savings_accounts + credit_accounts, [])
 transaction_indices = list(range(len(transactions)))
 transaction_indices.sort(key=lambda i: transactions[i][0])
 transactions = np.array(transactions)[np.array(transaction_indices)]
@@ -93,30 +101,38 @@ total_balances = []
 checking_balances = []
 savings_balances = []
 credit_balances = []
-checking_balance = 0.0
-savings_balance = 0.0
-credit_balance = 0.0
+checking_balance_array = [0.0] * len(checking_accounts)
+savings_balance_array = [0.0] * len(savings_accounts)
+credit_balance_array = [0.0] * len(credit_accounts)
 last_date = None
 for i in range(len(transactions)):
-    (date, desc, amount, balance, type) = transactions[i]
+    (date, desc, amount, balance, id) = transactions[i]
+    type, account_index = id
+    print id
     if amount == 0:
         continue
     if last_date != date and last_date:
-        total_balances.append((last_date, checking_balance + savings_balance + credit_balance))
-        checking_balances.append((last_date, checking_balance))
-        savings_balances.append((last_date, savings_balance))
-        credit_balances.append((last_date, credit_balance))
+        combined_checking_balance = sum(checking_balance_array)
+        combined_savings_balance = sum(savings_balance_array)
+        combined_credit_balance = sum(credit_balance_array)
+        total_balances.append((last_date, combined_checking_balance + combined_savings_balance + combined_credit_balance))
+        checking_balances.append((last_date, combined_checking_balance))
+        savings_balances.append((last_date, combined_savings_balance))
+        credit_balances.append((last_date, combined_credit_balance))
     last_date = date
     if type == 'checking':
-        checking_balance = balance
+        checking_balance_array[account_index] = balance
     if type == 'savings':
-        savings_balance = balance
+        savings_balance_array[account_index] = balance
     if type == 'credit':
-        credit_balance = balance
-total_balances.append((last_date, checking_balance + savings_balance + credit_balance))
-checking_balances.append((last_date, checking_balance))
-savings_balances.append((last_date, savings_balance))
-credit_balances.append((last_date, credit_balance))
+        credit_balance_array[account_index] = balance
+combined_checking_balance = sum(checking_balance_array)
+combined_savings_balance = sum(savings_balance_array)
+combined_credit_balance = sum(credit_balance_array)
+total_balances.append((last_date, combined_checking_balance + combined_savings_balance + combined_credit_balance))
+checking_balances.append((last_date, combined_checking_balance))
+savings_balances.append((last_date, combined_savings_balance))
+credit_balances.append((last_date, combined_credit_balance))
 
 x_data, total_balances_data = zip(*map(lambda (date, bal): (year_fraction(date), bal), total_balances))
 x_data = np.array(x_data)
